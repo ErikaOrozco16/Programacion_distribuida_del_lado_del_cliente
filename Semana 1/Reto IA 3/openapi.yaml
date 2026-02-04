@@ -1,0 +1,250 @@
+#----------------------------------------------------------------------------
+#Mejoras al código:
+#-Mensaje de bienvenida
+#-Pide un nombre para una respuesta mas personalizada
+
+#Le puse estas mejoras porque quería personalizar un poco mas  la experiencia del #usuario.
+#------------------------------------------------------------------------------
+
+openapi: 3.0.3
+
+info:
+  title: EcoMarket API
+  description: API REST para la gestión de productos orgánicos de productores locales.
+  version: 1.0.0
+
+servers:
+  - url: https://api.ecomarket.local/v1
+    description: Servidor de desarrollo
+
+paths:
+
+  /bienvenida:
+    get:
+      summary: Mensaje de bienvenida
+      description: Devuelve un mensaje de bienvenida personalizado solicitando el nombre del usuario.
+      parameters:
+        - name: nombre
+          in: query
+          required: true
+          schema:
+            type: string
+          example: Erika
+      responses:
+        '200':
+          description: Mensaje de bienvenida generado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BienvenidaResponse'
+        '400':
+          description: Nombre no proporcionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                codigo: NOMBRE_REQUERIDO
+                mensaje: Debes proporcionar tu nombre para continuar.
+
+  /productos:
+    get:
+      summary: Listar productos disponibles
+      description: Obtiene una lista de productos, con filtros opcionales por categoría y productor.
+      parameters:
+        - name: categoria
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Categoria'
+        - name: productor_id
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de productos obtenida correctamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Producto'
+        '400':
+          description: Parámetros de consulta inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                codigo: PARAMETROS_INVALIDOS
+                mensaje: La categoría especificada no es válida.
+
+    post:
+      summary: Crear un nuevo producto
+      description: Crea un producto nuevo. Requiere autenticación.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoCreate'
+      responses:
+        '201':
+          description: Producto creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                codigo: DATOS_INVALIDOS
+                mensaje: El precio debe tener máximo dos decimales.
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                codigo: NO_AUTORIZADO
+                mensaje: Token de autorización inválido o ausente.
+
+  /productos/{id}:
+    get:
+      summary: Ver detalle de un producto
+      description: Obtiene el detalle de un producto específico por su ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                codigo: NO_ENCONTRADO
+                mensaje: El producto con el ID especificado no existe.
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    Categoria:
+      type: string
+      description: Categoría del producto
+      enum:
+        - frutas
+        - verduras
+        - lacteos
+        - miel
+        - conservas
+      example: frutas
+
+    Producto:
+      type: object
+      required:
+        - id
+        - nombre
+        - descripcion
+        - precio
+        - categoria
+        - productor_id
+        - disponible
+        - creado_en
+      properties:
+        id:
+          type: integer
+          example: 101
+        nombre:
+          type: string
+          example: Manzanas orgánicas
+        descripcion:
+          type: string
+          example: Manzanas cultivadas sin pesticidas.
+        precio:
+          type: number
+          format: float
+          multipleOf: 0.01
+          example: 25.50
+        categoria:
+          $ref: '#/components/schemas/Categoria'
+        productor_id:
+          type: integer
+          example: 12
+        disponible:
+          type: boolean
+          example: true
+        creado_en:
+          type: string
+          format: date-time
+          example: 2026-01-28T10:30:00Z
+
+    ProductoCreate:
+      type: object
+      required:
+        - nombre
+        - descripcion
+        - precio
+        - categoria
+        - productor_id
+      properties:
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        precio:
+          type: number
+          format: float
+          multipleOf: 0.01
+        categoria:
+          $ref: '#/components/schemas/Categoria'
+        productor_id:
+          type: integer
+
+    BienvenidaResponse:
+      type: object
+      required:
+        - mensaje
+      properties:
+        mensaje:
+          type: string
+          example: Bienvenida a EcoMarket, Erika. ¡Qué gusto tenerte aquí!
+
+    ErrorResponse:
+      type: object
+      required:
+        - codigo
+        - mensaje
+      properties:
+        codigo:
+          type: string
+          example: ERROR_GENERICO
+        mensaje:
+          type: string
+          example: Ha ocurrido un error inesperado.
