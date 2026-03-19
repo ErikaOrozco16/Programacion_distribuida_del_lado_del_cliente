@@ -1,3 +1,55 @@
+
+//--Simulador de API
+global.fetch = async (url, opciones = {}) => {
+
+    console.log("Simulación de petición a:", url);
+
+    if (url.includes("/inventario")) {
+
+        return {
+            status: 200,
+            headers: {
+                get: () => "12345-etag"
+            },
+            async json() {
+                return {
+                    productos: [
+                        {
+                            id: 1,
+                            nombre: "Manzanas",
+                            stock: 3,
+                            status: "BAJO_MINIMO"
+                        },
+                        {
+                            id: 2,
+                            nombre: "Leche",
+                            stock: 20,
+                            status: "OK"
+                        }
+                    ]
+                };
+            }
+        };
+
+    }
+
+    if (url.includes("/alertas")) {
+
+        return {
+            status: 201,
+            async json() {
+                return { mensaje: "Alerta creada" };
+            }
+        };
+
+    }
+
+};
+
+
+
+
+
 // ─── CONFIGURACIÓN ───────────────────────────────────────────────
 const BASE_URL = "http://ecomarket.local/api/v1";
 const TOKEN = "eyJ0eXAiO...";
