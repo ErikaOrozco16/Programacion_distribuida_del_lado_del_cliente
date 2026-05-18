@@ -1,0 +1,362 @@
+yaml
+openapi: 3.0.3
+
+info:
+  title: EcoMarket API
+  description: API REST para la gestión de productos orgánicos de productores locales.
+  version: 1.2.0
+
+servers:
+  - url: https://api.ecomarket.local/v1
+    description: Servidor de desarrollo
+
+tags:
+  - name: Sistema
+  - name: Productos
+  - name: Debug
+
+paths:
+
+  /bienvenida:
+    get:
+      tags:
+        - Sistema
+      summary: Mensaje de bienvenida
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - name: nombre
+          in: query
+          required: false
+          schema:
+            type: string
+          example: Erika
+      responses:
+        '200':
+          description: Mensaje generado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BienvenidaResponse'
+        '400':
+          description: Nombre inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /productos:
+    get:
+      tags:
+        - Productos
+      summary: Listar productos disponibles
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - name: categoria
+          in: query
+          schema:
+            $ref: '#/components/schemas/Categoria'
+        - name: productor_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de productos obtenida correctamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Producto'
+        '400':
+          description: Parámetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Productos
+      summary: Crear un nuevo producto
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoCreate'
+      responses:
+        '201':
+          description: Producto creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /productos/{id}:
+    get:
+      tags:
+        - Productos
+      summary: Ver detalle de un producto
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Productos
+      summary: Actualizar un producto completo
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoCreate'
+      responses:
+        '200':
+          description: Producto actualizado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Productos
+      summary: Actualizar parcialmente un producto
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Producto actualizado parcialmente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autorizado
+        '404':
+          description: Producto no encontrado
+
+    delete:
+      tags:
+        - Productos
+      summary: Eliminar un producto
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Producto eliminado correctamente
+        '401':
+          description: No autorizado
+        '404':
+          description: Producto no encontrado
+
+  /debug/error:
+    get:
+      tags:
+        - Debug
+      summary: Simular error interno
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+      responses:
+        '500':
+          description: Error interno simulado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /debug/slow:
+    get:
+      tags:
+        - Debug
+      summary: Simular respuesta lenta
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - name: delay
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Respuesta enviada después del retraso
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    RequestIdHeader:
+      name: X-Request-Id
+      in: header
+      schema:
+        type: string
+
+  schemas:
+
+    Categoria:
+      type: string
+      enum:
+        - frutas
+        - verduras
+        - lacteos
+        - miel
+        - conservas
+
+    Producto:
+      type: object
+      required:
+        - id
+        - nombre
+        - descripcion
+        - precio
+        - categoria
+        - productor_id
+        - disponible
+        - creado_en
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        precio:
+          type: number
+          format: float
+        categoria:
+          $ref: '#/components/schemas/Categoria'
+        productor_id:
+          type: integer
+        disponible:
+          type: boolean
+        creado_en:
+          type: string
+          format: date-time
+
+    ProductoCreate:
+      type: object
+      required:
+        - nombre
+        - descripcion
+        - precio
+        - categoria
+        - productor_id
+      properties:
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        precio:
+          type: number
+        categoria:
+          $ref: '#/components/schemas/Categoria'
+        productor_id:
+          type: integer
+
+    BienvenidaResponse:
+      type: object
+      properties:
+        mensaje:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+
