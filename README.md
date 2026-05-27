@@ -1,10 +1,10 @@
-# Programacion\_distribuida\_del\_lado\_del\_cliente
+# Programación\_distribuida\_del\_lado\_del\_cliente
 
 En este repositorio se encuentran las actividades dejadas en las semanas
 
 
 
-#Semana 4 :
+# Semana 4 :
 
 
 
@@ -279,7 +279,7 @@ breaker del lado cliente detiene temporalmente los intentos despues de varios
 fallos consecutivos y solo vuelve a probar despues de una ventana de espera.
 
 
-#Semana 6 :
+# Semana 6 :
 
 # Reto IA 1 - Traza mental del flujo SSE
 
