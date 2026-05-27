@@ -1,0 +1,24 @@
+[UI] A01 actualizado a $47
+[AUDITORIA] id=1 tipo=precio-actualizado
+[ALERTA] Stock alta: B07 tiene 1
+[AUDITORIA] id=2 tipo=stock-critico
+[UI] A01 actualizado a $45
+[AUDITORIA] id=3 tipo=precio-actualizado
+[UI] C12 actualizado a $89
+[AUDITORIA] id=4 tipo=precio-actualizado
+[ALERTA] Stock media: D03 tiene 3
+[AUDITORIA] id=5 tipo=stock-critico
+[UI] A01 actualizado a $44
+[AUDITORIA] id=6 tipo=precio-actualizado
+[WARN] Suscriptor fallo en precio-actualizado: fallo simulado de UI
+[ALERTA] Stock alta: B07 tiene 0
+[AUDITORIA] id=7 tipo=stock-critico
+[UI] E20 actualizado a $15
+[AUDITORIA] id=8 tipo=precio-actualizado
+[UI] C12 actualizado a $86
+[AUDITORIA] id=9 tipo=precio-actualizado
+[ALERTA] Stock alta: F09 tiene 2
+[AUDITORIA] id=10 tipo=stock-critico
+[RESUMEN] precios={'A01': 44, 'C12': 86, 'E20': 15}
+[RESUMEN] registros_auditoria=10
+[RESUMEN] ultimo_id=10

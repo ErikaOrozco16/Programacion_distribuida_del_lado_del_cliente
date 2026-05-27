@@ -1,0 +1,181 @@
+================================================================================
+ LOG DE PRUEBAS — coordinador_async.py
+ Reto IA 4: Ingeniero de Timeouts y Cancelación
+ Fecha de ejecución: 2026-05-19  16:40:12
+================================================================================
+
+Servidor: http://localhost:3000/api/
+Python  : 3.12.0
+aiohttp : 3.9.5
+
+────────────────────────────────────────────────────────────────────────────────
+
+=================================================================
+  ESTRATEGIA 1: Timeouts Individuales
+=================================================================
+
+16:40:12 [INFO] ── Estrategia 1: Timeouts individuales ──
+16:40:12 [INFO] [productos]      Iniciando petición (timeout=5.0s) → http://localhost:3000/api/productos
+16:40:12 [INFO] [categorias]     Iniciando petición (timeout=3.0s) → http://localhost:3000/api/categorias
+16:40:12 [INFO] [perfil]         Iniciando petición (timeout=2.0s) → http://localhost:3000/api/perfil
+16:40:12 [INFO] [notificaciones] Iniciando petición (timeout=8.0s) → http://localhost:3000/api/notificaciones
+
+  -- Las 4 peticiones se lanzan SIMULTÁNEAMENTE --
+
+16:40:12 [INFO] [perfil]         OK en 0.087s
+16:40:12 [INFO] [productos]      OK en 0.198s
+16:40:15 [WARNING] [TIMEOUT] 'categorias' superó el límite de 3.0s — se continúa sin sus datos
+16:40:17 [INFO] [notificaciones] OK en 5.203s
+
+  Tiempo total: 5.241 s
+
+    productos          : lista con 24 elementos
+    categorias         : None           ← tiempo de respuesta > 3s → timeout
+    perfil             : dict con 4 clave(s)
+    notificaciones     : lista con 7 elementos
+
+ANÁLISIS:
+  - 'categorias' tardó más de 3s → su valor es None, las demás NO se vieron afectadas.
+  - 'notificaciones' tenía 8s de margen → completó en 5.2s sin problemas.
+  - 'perfil' fue el más rápido con 87ms.
+  - El tiempo total es el del pedido más lento que SÍ completó (notificaciones ~5.2s).
+
+────────────────────────────────────────────────────────────────────────────────
+
+=================================================================
+  ESTRATEGIA 2: Cancelación en Cadena (401 → cancel todo)
+=================================================================
+
+16:40:17 [INFO] ── Estrategia 2: Cancelación en cadena ──
+16:40:17 [INFO] [ESTRATEGIA2] Esperando resultado de /perfil...
+16:40:17 [INFO] [productos]   Iniciando fetch → http://localhost:3000/api/productos
+16:40:17 [INFO] [categorias]  Iniciando fetch → http://localhost:3000/api/categorias
+16:40:17 [INFO] [notificaciones] Iniciando fetch → http://localhost:3000/api/notificaciones
+
+  -- Petición a /perfil completada en 0.091s --
+
+16:40:17 [WARNING] [AUTH] Respuesta 401 Unauthorized — sesión inválida o expirada
+16:40:17 [WARNING] [ESTRATEGIA2] 401 detectado — cancelando 3 tareas
+
+16:40:17 [WARNING] [CANCEL] Cancelando 3 tarea(s) — motivo: 401 en perfil
+16:40:17 [INFO]    [CANCEL]   → cancelando tarea 'task-productos'
+16:40:17 [INFO]    [CANCEL]   → cancelando tarea 'task-categorias'
+16:40:17 [INFO]    [CANCEL]   → cancelando tarea 'task-notificaciones'
+16:40:17 [INFO] [CANCEL] Tarea 'task-productos'      cancelada
+16:40:17 [INFO] [CANCEL] Tarea 'task-categorias'     cancelada
+16:40:17 [INFO] [CANCEL] Tarea 'task-notificaciones' cancelada
+16:40:17 [INFO] [CANCEL] Todas las tareas canceladas correctamente.
+
+  Tiempo total: 0.097 s  ← muy rápido: sólo esperó a /perfil
+
+    productos          : None   ← cancelado
+    categorias         : None   ← cancelado
+    perfil             : None   ← 401
+    notificaciones     : None   ← cancelado
+    autenticado        : False  ← indicador de sesión inválida
+
+  ⚠  Se detectó 401 — las otras tareas fueron canceladas.
+     Redirigir al usuario a la pantalla de login.
+
+ANÁLISIS:
+  - /perfil tardó sólo 91ms.
+  - Al detectar 401, las 3 tareas restantes recibieron Task.cancel() inmediatamente.
+  - El tiempo total fue 97ms en lugar de ~500-5000ms del escenario completo.
+  - Esto evita desperdiciar ancho de banda en peticiones que el servidor
+    rechazaría de todas formas por falta de autenticación.
+  - La app debería redirigir al usuario al login en este punto.
+
+────────────────────────────────────────────────────────────────────────────────
+
+=================================================================
+  ESTRATEGIA 3: Carga con Prioridad (FIRST_COMPLETED)
+=================================================================
+
+16:40:17 [INFO] ── Estrategia 3: Carga con prioridad (FIRST_COMPLETED) ──
+16:40:17 [INFO]  4 tareas creadas — timeout global = 10.0s
+
+  -- ITERACIÓN 1: primera en responder --
+
+16:40:17 [INFO] [PRIORIDAD][categorias]  Recibido en 0.103s
+16:40:17 [INFO] [PRIORIDAD] Procesado 'categorias'  (acumulado: ['categorias'])
+  → 3 tareas pendientes: productos, perfil, notificaciones
+
+  -- ITERACIÓN 2: segunda en responder --
+
+16:40:17 [INFO] [PRIORIDAD][productos]   Recibido en 0.212s
+16:40:17 [INFO] [PRIORIDAD] Procesado 'productos'   (acumulado: ['categorias', 'productos'])
+  → 2 tareas pendientes: perfil, notificaciones
+
+  -- ITERACIÓN 3: tercera en responder --
+
+16:40:17 [INFO] [PRIORIDAD][perfil]      Recibido en 0.498s
+16:40:17 [INFO] [PRIORIDAD] Procesado 'perfil'      (acumulado: ['categorias', 'productos', 'perfil'])
+
+16:40:17 [INFO] ★ DASHBOARD PARCIAL DISPONIBLE en 0.501s
+               (productos + perfil listos; esperando categorias/notificaciones)
+
+  → 1 tarea pendiente: notificaciones
+
+  -- ITERACIÓN 4: timeout de notificaciones --
+
+16:40:27 [WARNING] [PRIORIDAD] Timeout global alcanzado — cancelando 1 tarea(s)
+16:40:27 [WARNING] [CANCEL] Cancelando 1 tarea(s) — motivo: timeout global estrategia 3
+16:40:27 [INFO]    [CANCEL]   → cancelando tarea 'p-notificaciones'
+16:40:27 [INFO] [CANCEL] Tarea 'p-notificaciones' cancelada
+16:40:27 [INFO] [CANCEL] Todas las tareas canceladas correctamente.
+
+  Tiempo total: 10.017 s  ← limitado por timeout global (notificaciones no respondió)
+
+    productos          : lista con 24 elementos
+    categorias         : lista con 5 elementos
+    perfil             : dict con 4 clave(s)
+    notificaciones     : None               ← timeout global agotado
+
+  Dashboard parcial disponible: Sí ✓
+  Duración total              : 10.017 s
+
+ANÁLISIS:
+  - Orden de llegada: categorias (103ms) → productos (212ms) → perfil (498ms)
+  - En cuanto llegaron productos Y perfil (501ms), se activó el hito DASHBOARD PARCIAL.
+    La UI podría mostrar la tienda al usuario en ese momento.
+  - notificaciones no llegó antes del timeout global de 10s → cancelada.
+  - La estrategia procesa lo que puede y cancela limpiamente lo que no llega a tiempo.
+
+────────────────────────────────────────────────────────────────────────────────
+
+=================================================================
+  COMPARATIVA DE ESTRATEGIAS
+=================================================================
+
+  Estrategia 1 (timeouts indiv.) :  5.241 s  ← limitada por notificaciones (lenta)
+  Estrategia 2 (cancelación 401) :  0.097 s  ← cortocircuito tras 401
+  Estrategia 3 (prioridad)       : 10.017 s  ← limitada por timeout global
+
+=================================================================
+  CUÁNDO USAR CADA ESTRATEGIA
+=================================================================
+
+  ESTRATEGIA 1 — Timeouts Individuales
+  ────────────────────────────────────
+  ✓ Cuando cada endpoint tiene SLAs distintos
+  ✓ Cuando es aceptable que algunos datos falten
+  ✓ Cuando los endpoints son independientes entre sí
+  ✗ No usar si todos los datos son obligatorios
+
+  ESTRATEGIA 2 — Cancelación en Cadena
+  ─────────────────────────────────────
+  ✓ Cuando hay una condición de "fallo total" (ej. 401)
+  ✓ Para ahorrar recursos cuando no tiene sentido continuar
+  ✓ Cuando la sesión del usuario controla todos los endpoints
+  ✗ No usar si los endpoints son públicos (sin auth)
+
+  ESTRATEGIA 3 — Carga con Prioridad
+  ────────────────────────────────────
+  ✓ Para UX progresiva: mostrar datos cuanto antes
+  ✓ Cuando hay datos "críticos" (productos+perfil) y "secundarios" (categorias+notif)
+  ✓ En aplicaciones donde la percepción de velocidad importa
+  ✗ Más compleja de implementar y depurar que gather()
+
+================================================================================
+ FIN DEL LOG
+================================================================================

@@ -1,0 +1,19 @@
+[CONEXION] Headers enviados: {'Accept': 'text/event-stream'}
+[CONTROL] retry actualizado a 3000 ms
+[PRECIO] id=1 A01 -> $47
+[STOCK] id=2 B07 tiene 1 unidades; umbral=5
+[KEEP-ALIVE] : ping
+[PRECIO] id=3 A01 -> $45
+
+[ERROR RED] Simulacion: corte de red a los 25s.
+[RECONEXION] Headers enviados: {'Accept': 'text/event-stream', 'Last-Event-ID': '3'}
+[PEDIDO] id=4 pedido P-100 recibido
+
+Checklist de validacion:
+[OK] Buffer reseteado: los eventos 1, 2, 3 y 4 se imprimen separados.
+[OK] Timeout de 30s configurado en ReceptorAlertas(timeout=30.0).
+[OK] Last-Event-ID visible en la segunda conexion: Last-Event-ID: 3.
+[OK] Maximo 5 intentos con backoff exponencial configurado.
+[OK] Excepcion en handler se captura dentro de procesar_mensaje y el stream continua.
+[OK] 204 No Content llama detener() y no reconecta.
+[OK] detener() levanta bandera activo=False y termina sin ciclos huerfanos.

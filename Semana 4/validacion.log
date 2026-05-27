@@ -1,0 +1,45 @@
+=================================================================
+VALIDACION DE ESCENARIOS CRITICOS - MONITOR DE INVENTARIO
+=================================================================
+
+[14:00:01] Polling iniciado: https://api.ecomarket.local/inventario
+
+--- ESCENARIO A: El servidor tarda 15s en responder y TIMEOUT es 10s ---
+[14:00:06] Ciclo #1 | intervalo=5.0s
+[14:00:16] Timeout despues de 10s.
+[14:00:16] [LOG] Evento de error registrado: {'timeout': 10, 'ciclo': 1}
+[14:00:16] Proxima consulta en 10.0s
+Resultado: el cliente no queda bloqueado y aplica backoff.
+
+--- ESCENARIO B: El servidor responde HTML en lugar de JSON ---
+[14:00:26] Ciclo #2 | intervalo=10.0s
+[14:00:26] Error controlado: Content-Type inesperado: text/html
+[14:00:26] [LOG] Evento de error registrado: {'mensaje': 'Content-Type inesperado: text/html', 'ciclo': 2}
+[14:00:26] Proxima consulta en 20.0s
+Resultado: el cliente registra el problema y conserva el control del ciclo.
+
+--- ESCENARIO C: Un observador lanza una excepcion ---
+[14:00:46] Ciclo #3 | intervalo=20.0s
+[14:00:46] 200 OK en 80ms. Datos notificados.
+[14:00:46] [WARN] Observador 'detectar_agotados_defectuoso' fallo: 'NoneType' object is not subscriptable
+[14:00:46] [UI] Inventario actualizado: 15 productos.
+[14:00:46] Proxima consulta en 5.0s
+Resultado: la excepcion queda aislada y los demas observadores siguen funcionando.
+
+--- ESCENARIO D: El servidor devuelve 200 pero productos viene null ---
+[14:00:51] Ciclo #4 | intervalo=5.0s
+[14:00:51] 200 OK en 90ms. Datos notificados.
+[14:00:51] [WARN] Observador 'actualizar_ui' fallo: object of type 'NoneType' has no len()
+[14:00:51] [LOG] Dato inesperado revisado sin detener ServicioPolling.
+[14:00:51] Proxima consulta en 5.0s
+Resultado: el dato inesperado afecta solo al observador que no lo pudo procesar.
+
+--- PRUEBA DE DESACOPLAMIENTO ---
+[14:00:56] Se agrego observador_4 para auditoria visual.
+[14:00:57] Se retiro observador_4 con desuscribir().
+[14:00:57] ServicioPolling no fue modificado.
+
+# PRUEBA DE DESACOPLAMIENTO:
+# Agregue observador_4 y lo quite sin modificar ServicioPolling.
+# ServicioPolling no tiene referencia directa a ningun observador.
+=================================================================
